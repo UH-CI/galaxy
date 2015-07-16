@@ -19,6 +19,19 @@ from galaxy.datatypes.binary import Binary
 
 log = logging.getLogger(__name__)
 
+
+def attemptMove(temp_name, fname):
+    # DLS 20150527 == force galaxy to fall back to a cp command, since
+    # mixing ownership becomes problematic...
+    try:
+        shutil.move( temp_name, fname )
+    except:
+        os.system("""cp '%s' '%s'"""%(temp_name, fname))
+        if os.path.samefile(temp_name,fname) == False:
+            os.system("""rm '%s' """%(temp_name))
+
+
+
 def get_test_fname(fname):
     """Returns test data filename"""
     path, name = os.path.split(__file__)
@@ -90,6 +103,8 @@ def check_newlines( fname, bytes_to_read=52428800 ):
     f.close()
     return False
 
+
+
 def convert_newlines( fname, in_place=True, tmp_dir=None, tmp_prefix=None ):
     """
     Converts in place a file from universal line endings
@@ -113,7 +128,8 @@ def convert_newlines( fname, in_place=True, tmp_dir=None, tmp_prefix=None ):
     else:
         i += 1
     if in_place:
-        shutil.move( temp_name, fname )
+        attemptMove(temp_name, fname)
+        #shutil.move( temp_name, fname )
         # Return number of lines in file.
         return ( i, None )
     else:
@@ -144,8 +160,8 @@ def sep2tabs( fname, in_place=True, patt="\\s+" ):
     else:
         i += 1
     if in_place:
-        shutil.move( temp_name, fname )
-        # Return number of lines in file.
+        attemptMove(temp_name, fname)
+        #shutil.move( temp_name, fname )
         return ( i, None )
     else:
         return ( i, temp_name )
@@ -171,7 +187,8 @@ def convert_newlines_sep2tabs( fname, in_place=True, patt="\\s+", tmp_dir=None, 
         fp.write( "%s\n" % '\t'.join( elems ) )
     fp.close()
     if in_place:
-        shutil.move( temp_name, fname )
+        attemptMove(temp_name, fname)
+        #shutil.move( temp_name, fname )
         # Return number of lines in file.
         return ( i + 1, None )
     else:
@@ -384,7 +401,8 @@ def handle_compressed_file( filename, datatypes_registry, ext = 'auto' ):
         os.close( fd )
         compressed_file.close()
         # Replace the compressed file with the uncompressed file
-        shutil.move( uncompressed, filename )
+        attemptMove(uncompressed, filename)
+        #shutil.move( uncompressed, filename )
     return is_valid, ext
 
 def handle_uploaded_dataset_file( filename, datatypes_registry, ext = 'auto', is_multi_byte = False ):
