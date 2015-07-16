@@ -114,6 +114,9 @@ class RemoteUser( object ):
                 pass  # admins can create users
             elif path_info.startswith( '/user/logout' ) and environ[ self.remote_user_header ] in self.admin_users:
                 pass  # Admin users may be impersonating, allow logout.
+            #DLS 20150626 -- we want to allow users to logout of CAS auth
+            elif path_info.startswith( '/user/logout' ):
+                pass  # Admin users may be impersonating, allow logout.
             elif path_info.startswith( '/user/manage_user_info' ) and environ[ self.remote_user_header ] in self.admin_users:
                 pass  # Admin users need to be able to change user information
             elif path_info.startswith( '/user/edit_info' ) and environ[ self.remote_user_header ] in self.admin_users:
