@@ -9,6 +9,8 @@ from galaxy.util import string_as_bool
 from galaxy.model import User
 import galaxy.tools
 
+from third_party.slurm.database.util import getSlurmAccount
+
 log = logging.getLogger(__name__)
 
 class Filter( object ):
@@ -389,6 +391,30 @@ class SortByColumnFilter( Filter ):
         return rval
 
 
+
+class getUseAccountsFilter( Filter ):
+    """
+    Return all the accounts of a given user
+    Type: slurm_accounts
+    Required Attributes:
+    """
+    def __init__( self, d_option, elem ):
+        Filter.__init__( self, d_option, elem )
+
+    def filter_options( self, options, trans, other_values ):
+        rval = [["Default","Default", False]]
+        for row in getSlurmAccount(trans.sa_session, trans.user.id):
+            if row[2]:
+                rval.insert(1, [row[1], row[1], True])
+            else:
+                rval.append([row[1], row[1], False])
+
+        if len(rval) == 1 or not rval[1][-1]:
+            rval[0][-1] = True
+        return rval
+
+
+
 filter_types = dict( data_meta = DataMetaFilter,
                      param_value = ParamValueFilter,
                      static_value = StaticValueFilter,
@@ -397,7 +423,9 @@ filter_types = dict( data_meta = DataMetaFilter,
                      attribute_value_splitter = AttributeValueSplitterFilter,
                      add_value = AdditionalValueFilter,
                      remove_value = RemoveValueFilter,
-                     sort_by = SortByColumnFilter )
+                     sort_by = SortByColumnFilter,
+                     slurm_accnt = getUseAccountsFilter,
+                 )
 
 class DynamicOptions( object ):
     """Handles dynamically generated SelectToolParameter options"""
@@ -606,3 +634,5 @@ class DynamicOptions( object ):
             return self.columns[column_spec]
         # Int?
         return int( column_spec )
+
+
