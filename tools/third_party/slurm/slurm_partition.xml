@@ -1,10 +1,10 @@
-<tool id="slurm_Account" name="Setting the Users Slurm Account">
+<tool id="slurm_Partition" name="Setting the Users Slurm Partition">
   <description>Allows the user to specify which account on the cluster they wish to use.</description>
-  <command interpreter="python">slurm_account.py $input $__user_id__</command>
+  <command interpreter="python">slurm_partition.py $input $__user_id__</command>
   <inputs>
-    <param name="Account" type="select" label="Get">
+    <param name="Partition" type="select" label="Get">
       <options>
-      <filter type="slurm_accnt" />
+      <filter type="slrum_partition" />
       </options>
     </param>
   </inputs>

@@ -24,12 +24,14 @@ galaxy_user_slurm_partition = Table( "galaxy_user_slurm_partition", metadata,
     Column( "id", Integer, primary_key=True ),
     Column( "partition_id", Integer, ForeignKey("slurm_partition.id"), index=True),
     Column( "user_id", Integer, ForeignKey( "galaxy_user.id" ), index=True ),
-    Column( "selected", Boolean, default = False  ) )
+    Column( "selected", Boolean, default = False, index = True  ) )
+#    Column( "default", Boolean, default = False, index = True  ) )
 
 slurm_partition_to_account = Table( "slurm_partition_to_account", metadata,
     Column( "id", Integer, primary_key=True ),
     Column( "account_id", Integer, ForeignKey("slurm_account.id"), index=True),
     Column( "partition_id", Integer, ForeignKey( "slurm_partition.id" ), index=True ) )
+#    Column( "default", Boolean, default = False, index = True  ) )
 
 
 def upgrade(migrate_engine):
