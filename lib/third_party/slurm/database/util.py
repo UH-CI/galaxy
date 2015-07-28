@@ -9,7 +9,7 @@ def getSlurmAccount( sa_session, usrid):
 
 
 def getSlurmPartition( sa_session, usrid):
-    sql = """SELECT A.id, A.name, B.selected FROM slurm_partition AS A JOIN galaxy_user_slurm_partition AS B ON ( A.id = B.account_id) WHERE B.user_id = :usrid;"""
+    sql = """SELECT A.id, A.name, B.selected FROM slurm_partition AS A JOIN galaxy_user_slurm_partition AS B ON ( A.id = B.partition_id) WHERE B.user_id = :usrid;"""
     return sa_session.execute(sql, {'usrid': usrid})
 
 
@@ -33,7 +33,7 @@ def getSlurmAccountPartitionCombos(sa_session, usrid):
                JOIN galaxy_user_slurm_account AS E ON (D.accntid = E.account_id) 
                JOIN galaxy_user_slurm_partition AS F ON (F.partition_id = D.partid) 
               WHERE E.user_id = :usrid AND F.user_id = :usrid;"""
-    return (sa_session.execute(sql, {'usrid': usrid}), sel_accnt, sql_part, )
+    return (sa_session.execute(sql, {'usrid': usrid}), sel_accnt, sel_part, )
 
 
 def setSlurmAccount(sa_session, usrid, accountlabel):
@@ -67,9 +67,9 @@ def setSlurmPartition(sa_session, usrid, partition):
 
 
 def setSlurmAccountandPartition(sa_session, usrid, account_partition):
-    account, partition =  account_partition.split(";")
-    setSlurmAccount(sa_session, usrid, account)
-    setSlurmPartition(sa_session, usrid, partition)
+    
+    setSlurmAccount(sa_session, usrid, account_partition['account'])
+    setSlurmPartition(sa_session, usrid, account_partition['partition'])
 
 
 # model.slurm_account = Table( "slurm_account", metadata,

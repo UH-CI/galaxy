@@ -1,6 +1,6 @@
 <tool id="slurm_Account" name="Setting the Users Slurm Account">
   <description>Allows the user to specify which account on the cluster they wish to use.</description>
-  <command interpreter="python">slurm_account.py $input $__user_id__</command>
+  <command interpreter="python">slurm_account.py '$Account' $__user_id__ > $out_file1 2>&amp;1 </command>
   <inputs>
     <param name="Account" type="select" label="Get">
       <options>
@@ -8,7 +8,9 @@
       </options>
     </param>
   </inputs>
-
+  <outputs>
+    <data format="txt" name="out_file1"/>
+  </outputs>
   <help>
 This tool computes GC content from a FASTA file.
   </help>

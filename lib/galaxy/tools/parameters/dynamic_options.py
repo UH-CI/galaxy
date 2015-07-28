@@ -446,12 +446,16 @@ class getUserPartitionsAndAccountsFilter( Filter ):
         Filter.__init__( self, d_option, elem )
 
     def filter_options( self, options, trans, other_values ):
-        rval = [["DEFAULT;DEFAULT","DEFAULT;DEFAULT", False]]
+        rval = [[ "'account' : 'DEFAULT' , 'partition' : 'DEFAULT'", "'account' : 'DEFAULT' , 'partition' : 'DEFAULT'", False]]
+        nondefault = False
         data, selaccnt, selpart = getSlurmAccountPartitionCombos(trans.sa_session, trans.user.id)
         for row in data:
-            val = "%s;%s"%(row[0], row[1])
-            rval.append([val, val, False])
-        if len(rval) == 1 or not rval[1][-1]:
+            val = "'account' : '%s' , 'partition' : '%s'"%(row[0], row[1])
+            state = selaccnt == row[2] and selpart == row[3]
+            if state:
+                nondefault = True
+            rval.append([val, val, state ])
+        if len(rval) == 1 or not nondefault:
             rval[0][-1] = True
         return rval
 
@@ -467,8 +471,8 @@ filter_types = dict( data_meta = DataMetaFilter,
                      remove_value = RemoveValueFilter,
                      sort_by = SortByColumnFilter,
                      slurm_accnt = getUseAccountsFilter,
-                     slrum_partition = getUsePartitionsFilter,
-                     slrum_accntNpart = getUserPartitionsAndAccountsFilter,
+                     slurm_partition = getUsePartitionsFilter,
+                     slurm_accntNpart = getUserPartitionsAndAccountsFilter,
                  )
 
 class DynamicOptions( object ):
