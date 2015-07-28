@@ -17,8 +17,13 @@ log = logging.getLogger( __name__ )
 metadata = MetaData()
 
 slurm_partition = Table( "slurm_partition", metadata,
-    Column( "id", Integer, primary_key=True ),
-    Column( "name", TEXT, default = False  ) )
+                         Column( "id", Integer, primary_key=True ),
+                         Column( "name", TEXT, default = False  ),
+                         Column( "max_time", TEXT),
+                         Column( "max_cpus", Integer),
+                         Column( "ram_per_cpu", Integer),
+ )
+
 
 galaxy_user_slurm_partition = Table( "galaxy_user_slurm_partition", metadata,
     Column( "id", Integer, primary_key=True ),

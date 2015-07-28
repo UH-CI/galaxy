@@ -12,7 +12,22 @@ def getSlurmPartition( sa_session, usrid):
     sql = """SELECT A.id, A.name, B.selected FROM slurm_partition AS A JOIN galaxy_user_slurm_partition AS B ON ( A.id = B.partition_id) WHERE B.user_id = :usrid;"""
     return sa_session.execute(sql, {'usrid': usrid})
 
+
 def getSlurmAccountPartition(sa_session, usrid):
+    sql = """SELECT B.name FROM galaxy_user_slurm_account AS A JOIN slurm_account AS B ON (A.account_id = B.id)  WHERE user_id = :usrid AND selected = 1; """
+    sel_accnt = sa_session.execute(sql, {'usrid': usrid}).fetchone()
+    if sel_accnt:
+        sel_accnt = sel_accnt[0]
+    sql = """SELECT B.name, B.max_cpus, B.max_time, B.ram_per_cpu FROM galaxy_user_slurm_partition AS A JOIN slurm_partition AS B ON (A.partition_id = B.id) WHERE A.user_id = :usrid AND A.selected = 1; """
+    part_row = sa_session.execute(sql, {'usrid': usrid}).fetchone()
+    if part_row:
+        partition, max_cpus, max_time, ram_per_cpu = part_row
+    else:
+        partition, max_cpus, max_time, ram_per_cpu = (None, None, None, None,)
+    return sel_accnt, partition, max_cpus, max_time, ram_per_cpu
+
+
+def getSlurmAccountPartitionCombos(sa_session, usrid):
     sql = """SELECT account_id FROM galaxy_user_slurm_account WHERE user_id = :usrid AND selected = 1; """
     sel_accnt = sa_session.execute(sql, {'usrid': usrid}).fetchone()
     if sel_accnt:
@@ -22,10 +37,7 @@ def getSlurmAccountPartition(sa_session, usrid):
     sel_part = sa_session.execute(sql, {'usrid': usrid}).fetchone()
     if sel_part:
         sel_part = sel_part[0]
-    return sel_account, sel_part, max_cpus, max_time, ram_per_cpu
 
-def getSlurmAccountPartitionCombos(sa_session, usrid):
-    sel_accnt, sel_part, max_cpus, max_time, ram_per_cpu = getSlurmAccountPartition(sa_session, usrid)
 
     sql = """SELECT account, partition, account_id, partition_id
               FROM 
