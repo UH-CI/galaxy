@@ -1,6 +1,9 @@
 import sys
 import os
-from miniapp import *
+GALAXY_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+GALAXY_LIB_DIR = os.path.join(GALAXY_ROOT_DIR, "lib")
+sys.path.insert( 0, GALAXY_LIB_DIR)
+from third_party.miniapp import *
 from third_party.slurm.database.util import *
 
 def __main__():

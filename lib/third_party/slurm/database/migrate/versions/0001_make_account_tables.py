@@ -18,14 +18,15 @@ metadata = MetaData()
 
 slurm_account = Table( "slurm_account", metadata,
     Column( "id", Integer, primary_key = True ),
-    Column( "name", TEXT, default = False  ) )
+    Column( "name", TEXT ) )
+
 
 galaxy_user_slurm_account = Table( "galaxy_user_slurm_account", metadata,
     Column( "id", Integer, primary_key = True ),
     Column( "account_id", Integer, ForeignKey("slurm_account.id"), index = True),
     Column( "user_id", Integer, ForeignKey( "galaxy_user.id" ), index = True ),
     Column( "selected", Boolean, default = False, index = True  ) )
-#    Column( "default", Boolean, default = False, index = True  ) )
+
 
 def upgrade(migrate_engine):
     metadata.bind = migrate_engine
