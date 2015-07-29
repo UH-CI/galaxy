@@ -52,24 +52,26 @@ sout, serr = child.communicate()
 soutfp = StringIO.StringIO(sout)
 accountmap = defaultdict(set)
 usertoaccount = defaultdict(list)
+accountlist = set()
 for l in soutfp:
     try:
         account, user = l.split()
     except:
         continue
+    accountlist.add(account)
     usertoaccount[user].append(account)
     for k, p in partitions.iteritems():
         if 'ALL' in p[0] or account in p[0]:
             accountmap[account].add(k)
 
 
-
+accountlist = list(accountlist)
 accountmap  = dict( [ (k, list(v),) for k, v in accountmap.iteritems()])
 usertoaccount = dict(usertoaccount)
 
 partitions = dict([ (k, list(v)[1:],)  for k,v in partitions.iteritems()])
 
 with open("slurm_partition_info.yml", "w") as o:
-    print >> o, yaml.dump(dict(partitions = partitions, accountinfo = accountmap, usr_to_accnt = usertoaccount))
+    print >> o, yaml.dump(dict(partitions = partitions, accountinfo = accountmap, usr_to_accnt = usertoaccount, accounts = accountlist))
 
 
