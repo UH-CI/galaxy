@@ -1,4 +1,6 @@
 #!/bin/sh
+PID_HOME=/home/galaxy/pids/
+LOG_HOME=/home/galaxy/logs/
 
 cd `dirname $0`
 
@@ -54,17 +56,17 @@ if [ -n "$GALAXY_RUN_ALL" ]; then
     ARGS=`echo "$@" | sed 's/--wait//'`
     for server in $servers; do
         if [ $WAIT -eq 0 ]; then
-            python ./scripts/paster.py serve $GALAXY_CONFIG_FILE --server-name=$server --pid-file=$server.pid --log-file=$server.log $ARGS
+            python ./scripts/paster.py serve $GALAXY_CONFIG_FILE --server-name=$server --pid-file=${PID_HOME}$server.pid --log-file=${LOG_HOME}$server.log $ARGS
             while true; do
                 sleep 1
                 printf "."
                 # Grab the current pid from the pid file
-                if ! current_pid_in_file=$(cat $server.pid); then
+                if ! current_pid_in_file=$(cat ${PID_HOME}$server.pid); then
                     echo "A Galaxy process died, interrupting" >&2
                     exit 1
                 fi
                 # Search for all pids in the logs and tail for the last one
-                latest_pid=`egrep '^Starting server in PID [0-9]+\.$' $server.log -o | sed 's/Starting server in PID //g;s/\.$//g' | tail -n 1`
+                latest_pid=`egrep '^Starting server in PID [0-9]+\.$' ${PID_HOME}$server.log -o | sed 's/Starting server in PID //g;s/\.$//g' | tail -n 1`
                 # If they're equivalent, then the current pid file agrees with our logs
                 # and we've succesfully started
                 [ -n "$latest_pid" ] && [ $latest_pid -eq $current_pid_in_file ] && break
@@ -72,7 +74,7 @@ if [ -n "$GALAXY_RUN_ALL" ]; then
             echo
         else
             echo "Handling $server with log file $server.log..."
-            python ./scripts/paster.py serve $GALAXY_CONFIG_FILE --server-name=$server --pid-file=$server.pid --log-file=$server.log $@
+            python ./scripts/paster.py serve $GALAXY_CONFIG_FILE --server-name=$server --pid-file=${PID_HOME}$server.pid --log-file=${LOG_HOME}$server.log $@
         fi
     done
 else
