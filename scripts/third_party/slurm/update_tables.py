@@ -23,7 +23,25 @@ from third_party.miniapp import *
 #         sql = """UPDATE galaxy_user_slurm_partition SET selected = 1 WHERE user_id = :usrid AND partition_id = :accnt;"""
 #         sa_session.execute(sql, {'usrid' : usrid, 'accnt' : accountid})
 
-#"""select id, username from galaxy_user"""
+
+def update_account_table(app, slurminfo):
+    accnt_map = dict(app.contect.execute("""select name, id from slurm_account;"""))
+    for accnt in slurminfo['accounts']:
+        if accnt not in accnt_map:
+            app.contect.execute("""INSERT INTO slurm_account(name) VALUES(:name);""",  {'name': accnt})
+    accnt_map = dict(app.contect.execute("""select name, id from slurm_account;"""))
+    for k, v in slurminfo['usr_to_accnt'].iteritems():
+        v = [accnt_map[i] for i in v]
+        
+
+def convert_username_to_userid(app, slurminfo):
+    usermap = slurminfo['usr_to_accnt']
+    usrselect = dict()
+    for r in app.contect.execute("""select id, username from galaxy_user;"""):
+        if r.username in usermap:
+            usrselect[r.id] = usermap[r.username]
+    return usrselect
+
 
 def __main__():
     if len(sys.argv) != 3:

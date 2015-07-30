@@ -3,9 +3,7 @@ import os
 
 #new_path = os.path.abspath( os.path.join( os.path.dirname( __file__ ), os.pardir, os.pardir ) )
 
-
-
-GALAXY_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", '..'))
+GALAXY_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 GALAXY_LIB_DIR = os.path.join(GALAXY_ROOT_DIR, "lib")
 sys.path.insert( 0, GALAXY_LIB_DIR)
 DEFAULT_INI_APP = "main"
