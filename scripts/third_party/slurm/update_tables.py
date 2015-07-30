@@ -12,14 +12,14 @@ from third_party.miniapp import *
 def account_to_partition(app, slurminfo):
     partition_map = dict(app.model.context.execute("""select name, id from slurm_partition;""").fetchall())
     accnt_map = dict(app.model.context.execute("""select name, id from slurm_account;""").fetchall())
-    trans = app.model.context.begin()
+    #trans = app.model.context.begin()
     app.model.context.execute("""DELETE FROM slurm_partition_to_account;""")
     idx = 1
     for k, v in slurminfo['accountinfo'].iteritems():
         for p in v:
             app.model.context.execute("""INSERT INTO slurm_partition_to_account(id, account_id, partition_id) VALUES(:num, :accid, :partid);""",  dict(num = idx, partid= partition_map[p], accid= accnt_map[k]) )      
             idx += 1
-    trans.commit()
+    #trans.commit()
 
 
 def update_user_slurm_accounts(app, usrselect):
@@ -52,7 +52,7 @@ def update_user_slurm_partitions(app):
 
 
 def update_partition_table(app, slurminfo):
-    partition_map = dict( [ (i.name, (i.id, i.max_time, i.max_cpus, i.ram_per_cpu,),) for i in  app.model.context.execute("""select name, id from slurm_partition;""")])
+    partition_map = dict( [ (i.name, i.id,) for i in  app.model.context.execute("""select name, id from slurm_partition;""")])
     for partition, params in slurminfo['partitions'].iteritems():
         maxtime  = params[0]
         maxcpus = int(params[1][0])
@@ -84,8 +84,8 @@ def convert_username_to_userid(app, slurminfo):
 
 
 def main():
-    if len(sys.argv) != 3:
-        print >> sys.stderr, "USAGE: %s <account> <user id number>" %(sys.argv[0])
+    if len(sys.argv) != 2:
+        print >> sys.stderr, "USAGE: %s <slurm yaml>" %(sys.argv[0])
         return
     ini_path = None
     for guess in DEFAULT_INIS:
@@ -94,15 +94,26 @@ def main():
             break
     if ini_path and not os.path.isabs(ini_path):
         ini_path = os.path.join(GALAXY_ROOT_DIR, ini_path)
-    account, userid= sys.argv[1:]
+
+    ymlfile = os.path.abspath(sys.argv[1])
     app = MiniApplication(config_file=ini_path)
+    trans = app.model.context.begin() 
     try:
-        print "Attempting to set slurm submission account to '%s'"%(account)
-        setSlurmAccount(app.model.context, userid, account)
-        print "Slurm submission account has been set to '%s'"%(account)
+        print >> sys.stderr, "Begin slurm user information update process"
+        slurminfo = yaml.load(open(ymlfile))
+        usrselect = convert_username_to_userid(app, slurminfo)
+        update_account_table(app, slurminfo, usrselect)
+        update_partition_table(app, slurminfo)
+        account_to_partition(app, slurminfo)
+        update_user_slurm_accounts(app, usrselect)
+        update_user_slurm_partitions(app)
+        trans.commit()
+        print >> sys.stderr, "Slurm information has been updated in the galaxy database"
     except:
-        print >> sys.stderr, "An error occurred while trying to set the slurm submission account"
+        trans.rollback()
+        print >> sys.stderr, "An error occurred while trying to update slurm information in galaxy"
     app.object_store.shutdown()
+    app.model.context.close()
 
 
 if __name__ == '__main__':

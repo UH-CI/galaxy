@@ -24,12 +24,14 @@ def __main__():
     account_partition = account_partition.replace("__sq__", "'")
     account_partition = eval("{" + account_partition + "}")
     app = MiniApplication(config_file=ini_path)
-
+    trans = app.model.context.begin()
     try:
         print "Attempting to set slurm submission account to '%s' and partition to '%s'"%( account_partition['account'], account_partition['partition'] )
         setSlurmAccountandPartition(app.model.context, userid, account_partition)
+        trans.commit()
         print "Slurm submission account and partition have been set to '%s' and '%s'"%( account_partition['account'], account_partition['partition'] )
     except:
+        trans.rollback()
         print >> sys.stderr, "An error occurred while trying to set the slurm submission account and partition"
     app.object_store.shutdown()
     

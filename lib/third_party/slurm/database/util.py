@@ -14,12 +14,13 @@ def getSlurmPartition( sa_session, usrid):
 
 
 def getSlurmAccountPartition(sa_session, usrid):
-    sql = """SELECT B.name FROM galaxy_user_slurm_account AS A JOIN slurm_account AS B ON (A.account_id = B.id)  WHERE user_id = :usrid AND selected = 1; """
-    sel_accnt = sa_session.execute(sql, {'usrid': usrid}).fetchone()
+    params = dict(usrid = usrid, sel = True)
+    sql = """SELECT B.name FROM galaxy_user_slurm_account AS A JOIN slurm_account AS B ON (A.account_id = B.id)  WHERE user_id = :usrid AND selected = :sel; """
+    sel_accnt = sa_session.execute(sql, params).fetchone()
     if sel_accnt:
         sel_accnt = sel_accnt[0]
-    sql = """SELECT B.name, B.max_cpus, B.max_time, B.ram_per_cpu FROM galaxy_user_slurm_partition AS A JOIN slurm_partition AS B ON (A.partition_id = B.id) WHERE A.user_id = :usrid AND A.selected = 1; """
-    part_row = sa_session.execute(sql, {'usrid': usrid}).fetchone()
+    sql = """SELECT B.name, B.max_cpus, B.max_time, B.ram_per_cpu FROM galaxy_user_slurm_partition AS A JOIN slurm_partition AS B ON (A.partition_id = B.id) WHERE A.user_id = :usrid AND A.selected = :sel; """
+    part_row = sa_session.execute(sql, params).fetchone()
     if part_row:
         partition, max_cpus, max_time, ram_per_cpu = part_row
     else:
@@ -28,16 +29,16 @@ def getSlurmAccountPartition(sa_session, usrid):
 
 
 def getSlurmAccountPartitionCombos(sa_session, usrid):
-    sql = """SELECT account_id FROM galaxy_user_slurm_account WHERE user_id = :usrid AND selected = 1; """
-    sel_accnt = sa_session.execute(sql, {'usrid': usrid}).fetchone()
+    params = dict(usrid = usrid, sel = True)
+    sql = """SELECT account_id FROM galaxy_user_slurm_account WHERE user_id = :usrid AND selected = :sel; """
+    sel_accnt = sa_session.execute(sql, params).fetchone()
     if sel_accnt:
         sel_accnt = sel_accnt[0]
 
-    sql = """SELECT partition_id, max_cpus, max_time, ram_per_cpu FROM galaxy_user_slurm_partition WHERE user_id = :usrid AND selected = 1; """
-    sel_part = sa_session.execute(sql, {'usrid': usrid}).fetchone()
+    sql = """SELECT partition_id, max_cpus, max_time, ram_per_cpu FROM galaxy_user_slurm_partition WHERE user_id = :usrid AND selected = :sel; """
+    sel_part = sa_session.execute(sql, params).fetchone()
     if sel_part:
         sel_part = sel_part[0]
-
 
     sql = """SELECT account, partition, account_id, partition_id
               FROM 
@@ -52,33 +53,37 @@ def getSlurmAccountPartitionCombos(sa_session, usrid):
 
 
 def setSlurmAccount(sa_session, usrid, accountlabel):
+    param_false = dict(usrid = usrid, sel = False)
     if accountlabel == 'DEFAULT':
-        sql = """UPDATE galaxy_user_slurm_account SET selected = 0 WHERE user_id = :usrid;"""
-        sa_session.execute(sql, {'usrid' : usrid})
+        sql = """UPDATE galaxy_user_slurm_account SET selected = :sel WHERE user_id = :usrid;"""
+        sa_session.execute(sql, param_false)
     else:
         sql = """SELECT id FROM slurm_account WHERE name = :lbl;"""
         result = sa_session.execute(sql, {'lbl': accountlabel})
         accountid = result.fetchone()[0]
         result.close()
-        sql = """UPDATE galaxy_user_slurm_account SET selected = 0 WHERE user_id = :usrid;"""
-        sa_session.execute(sql, {'usrid':usrid})
-        sql = """UPDATE galaxy_user_slurm_account SET selected = 1 WHERE user_id = :usrid AND account_id = :accnt;"""
-        sa_session.execute(sql, {'usrid' : usrid, 'accnt' : accountid})
+        param_true = dict(usrid = usrid, sel = True, accnt = accoutid)
+        sql = """UPDATE galaxy_user_slurm_account SET selected = :sel WHERE user_id = :usrid;"""
+        sa_session.execute(sql, param_false)
+        sql = """UPDATE galaxy_user_slurm_account SET selected = :sel WHERE user_id = :usrid AND account_id = :accnt;"""
+        sa_session.execute(sql, param_true)
 
 
 def setSlurmPartition(sa_session, usrid, partition):
+    param_false = dict(usrid = usrid, sel = False)
     if partition == 'DEFAULT':
-        sql = """UPDATE galaxy_user_slurm_partition SET selected = 0 WHERE user_id = :usrid;"""
-        sa_session.execute(sql, {'usrid' : usrid})
+        sql = """UPDATE galaxy_user_slurm_partition SET selected = :sel WHERE user_id = :usrid;"""
+        sa_session.execute(sql, param_false)
     else:
         sql = """SELECT id FROM slurm_partition WHERE name = :lbl;"""
         result = sa_session.execute(sql, {'lbl': partition})
         accountid = result.fetchone()[0]
         result.close()
-        sql = """UPDATE galaxy_user_slurm_partition SET selected = 0 WHERE user_id = :usrid;"""
-        sa_session.execute(sql, {'usrid':usrid})
-        sql = """UPDATE galaxy_user_slurm_partition SET selected = 1 WHERE user_id = :usrid AND partition_id = :accnt;"""
-        sa_session.execute(sql, {'usrid' : usrid, 'accnt' : accountid})
+        param_true = dict(usrid = usrid, sel = True, accnt = accoutid)
+        sql = """UPDATE galaxy_user_slurm_partition SET selected = :sel WHERE user_id = :usrid;"""
+        sa_session.execute(sql, param_false)
+        sql = """UPDATE galaxy_user_slurm_partition SET selected = :sel WHERE user_id = :usrid AND partition_id = :accnt;"""
+        sa_session.execute(sql, param_true)
 
 
 def setSlurmAccountandPartition(sa_session, usrid, account_partition):
