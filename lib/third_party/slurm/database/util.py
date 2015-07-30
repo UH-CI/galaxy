@@ -35,7 +35,7 @@ def getSlurmAccountPartitionCombos(sa_session, usrid):
     if sel_accnt:
         sel_accnt = sel_accnt[0]
 
-    sql = """SELECT partition_id, max_cpus, max_time, ram_per_cpu FROM galaxy_user_slurm_partition WHERE user_id = :usrid AND selected = :sel; """
+    sql = """SELECT partition_id FROM galaxy_user_slurm_partition WHERE user_id = :usrid AND selected = :sel; """
     sel_part = sa_session.execute(sql, params).fetchone()
     if sel_part:
         sel_part = sel_part[0]
@@ -62,7 +62,7 @@ def setSlurmAccount(sa_session, usrid, accountlabel):
         result = sa_session.execute(sql, {'lbl': accountlabel})
         accountid = result.fetchone()[0]
         result.close()
-        param_true = dict(usrid = usrid, sel = True, accnt = accoutid)
+        param_true = dict(usrid = usrid, sel = True, accnt = accountid)
         sql = """UPDATE galaxy_user_slurm_account SET selected = :sel WHERE user_id = :usrid;"""
         sa_session.execute(sql, param_false)
         sql = """UPDATE galaxy_user_slurm_account SET selected = :sel WHERE user_id = :usrid AND account_id = :accnt;"""
@@ -79,15 +79,14 @@ def setSlurmPartition(sa_session, usrid, partition):
         result = sa_session.execute(sql, {'lbl': partition})
         accountid = result.fetchone()[0]
         result.close()
-        param_true = dict(usrid = usrid, sel = True, accnt = accoutid)
+        param_true = dict(usrid = usrid, sel = True, accnt = accountid)
         sql = """UPDATE galaxy_user_slurm_partition SET selected = :sel WHERE user_id = :usrid;"""
         sa_session.execute(sql, param_false)
         sql = """UPDATE galaxy_user_slurm_partition SET selected = :sel WHERE user_id = :usrid AND partition_id = :accnt;"""
         sa_session.execute(sql, param_true)
 
 
-def setSlurmAccountandPartition(sa_session, usrid, account_partition):
-    
+def setSlurmAccountandPartition(sa_session, usrid, account_partition):    
     setSlurmAccount(sa_session, usrid, account_partition['account'])
     setSlurmPartition(sa_session, usrid, account_partition['partition'])
 
