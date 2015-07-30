@@ -1,6 +1,6 @@
 from galaxy.jobs import JobDestination
 import os
-from third_party.slurm.databases.util import getSlurmAccountPartition
+from third_party.slurm.database.util import getSlurmAccountPartition
 
 """
     <destination id="slurm_dynamic" runner="dynamic">
