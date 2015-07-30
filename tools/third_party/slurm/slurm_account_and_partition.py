@@ -23,7 +23,7 @@ def __main__():
     account_partition, userid= sys.argv[1:]    
     account_partition = account_partition.replace("__sq__", "'")
     account_partition = eval("{" + account_partition + "}")
-    app = MiniApplication(global_conf={"__file__": ini_path}, ini_file=ini_path, init_section="app:%s"%(DEFAULT_INI_APP))
+    app = MiniApplication(config_file=ini_path)
 
     try:
         print "Attempting to set slurm submission account to '%s' and partition to '%s'"%( account_partition['account'], account_partition['partition'] )

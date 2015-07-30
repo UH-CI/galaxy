@@ -21,15 +21,12 @@ class MiniApplication( object, config.ConfiguresGalaxyMixin ):
     This is just a quick/dirty way to get us access to the database managed by galaxy.  We end up creating
     a partial instance of the galaxy Application which configures the models, which in turns opens up a connection to the database.
     """
-    def __init__( self, **kwargs ):
+    def __init__( self, config_file, ini_section= "app:%s"%(DEFAULT_INI_APP) ):
         os.chdir(GALAXY_ROOT_DIR)
         self.name = 'galaxy'
         self.new_installation = False
-        # Read config file and check for errors
-        self.config = config.Configuration( **kwargs )
-        self._configure_object_store( fsmon=False )        
-        config_file = kwargs.get( 'global_conf', {} ).get( '__file__', None )
+        kwds = dict( ini_file=config_file,  ini_section="app:%s"%(DEFAULT_INI_APP), )
+        kwds = load_app_properties(kwds = kwds, ini_file = config_file)
+        self.config = config.Configuration( global_conf={'__file__' : config_file}, **kwds )
+        self._configure_object_store( fsmon=False )       
         self._configure_models( check_migrate_databases=False, check_migrate_tools=False, config_file=config_file )
-
-
-

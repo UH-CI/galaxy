@@ -28,7 +28,7 @@ def update_account_table(app, slurminfo):
     accnt_map = dict(app.contect.execute("""select name, id from slurm_account;"""))
     for accnt in slurminfo['accounts']:
         if accnt not in accnt_map:
-            app.contect.execute("""INSERT INTO slurm_account(name) VALUES(:name);""",  {'name': accnt})
+            app.model.context.execute("""INSERT INTO slurm_account(name) VALUES(:name);""",  {'name': accnt})
     accnt_map = dict(app.contect.execute("""select name, id from slurm_account;"""))
     for k, v in slurminfo['usr_to_accnt'].iteritems():
         v = [accnt_map[i] for i in v]
@@ -37,13 +37,13 @@ def update_account_table(app, slurminfo):
 def convert_username_to_userid(app, slurminfo):
     usermap = slurminfo['usr_to_accnt']
     usrselect = dict()
-    for r in app.contect.execute("""select id, username from galaxy_user;"""):
+    for r in app.model.context.execute("""select id, username from galaxy_user;"""):
         if r.username in usermap:
             usrselect[r.id] = usermap[r.username]
     return usrselect
 
 
-def __main__():
+def main():
     if len(sys.argv) != 3:
         print >> sys.stderr, "USAGE: %s <account> <user id number>" %(sys.argv[0])
         return
@@ -55,7 +55,7 @@ def __main__():
     if ini_path and not os.path.isabs(ini_path):
         ini_path = os.path.join(GALAXY_ROOT_DIR, ini_path)
     account, userid= sys.argv[1:]
-    app = MiniApplication(global_conf={"__file__": ini_path}, ini_file=ini_path, init_section="app:%s"%(DEFAULT_INI_APP))
+    app = MiniApplication(config_file=ini_path)
     try:
         print "Attempting to set slurm submission account to '%s'"%(account)
         setSlurmAccount(app.model.context, userid, account)
@@ -66,4 +66,4 @@ def __main__():
 
 
 if __name__ == '__main__':
-    __main__()
+    main()

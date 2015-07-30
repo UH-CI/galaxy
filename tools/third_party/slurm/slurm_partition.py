@@ -20,7 +20,7 @@ def __main__():
     if ini_path and not os.path.isabs(ini_path):
         ini_path = os.path.join(GALAXY_ROOT_DIR, ini_path)
     partition, userid= sys.argv[1:]    
-    app = MiniApplication(global_conf={"__file__": ini_path}, ini_file=ini_path, init_section="app:%s"%(DEFAULT_INI_APP))
+    app = MiniApplication(config_file=ini_path)
     try:
         print "Attempting to set slurm submission partition to '%s'"%(partition)
         setSlurmPartition(app.model.context, userid, partition)
