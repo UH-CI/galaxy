@@ -1,0 +1,19 @@
+<tool id="slurm_AccountNPartition" name="Setting the Users Slurm Account and Partition">
+  <description>Allows the user to specify which account and partition on the cluster they wish to use.</description>
+  <command interpreter="python">slurm_account_and_partition.py "$Account_Partition" $__user_id__ > $out_file1 2>&amp;1</command>
+  <inputs>
+    <param name="Account_Partition" type="select" label="Get">
+      <options>
+      <filter type="slurm_accntNpart" />
+      </options>
+    </param>
+  </inputs>
+  <outputs>
+    <data format="txt" name="out_file1"/>
+  </outputs>
+
+  <help>
+This tool computes GC content from a FASTA file.
+  </help>
+
+</tool>

@@ -20,7 +20,6 @@ from galaxy.datatypes.binary import Binary
 log = logging.getLogger(__name__)
 
 
-
 def attemptMove(temp_name, fname):
     # DLS 20150527 == force galaxy to fall back to a cp command, since
     # mixing ownership becomes problematic...
@@ -30,6 +29,7 @@ def attemptMove(temp_name, fname):
         os.system("""cp '%s' '%s'"""%(temp_name, fname))
         if os.path.samefile(temp_name,fname) == False:
             os.system("""rm '%s' """%(temp_name))
+
 
 def get_test_fname(fname):
     """Returns test data filename"""
