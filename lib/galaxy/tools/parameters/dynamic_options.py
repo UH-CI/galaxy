@@ -475,15 +475,16 @@ class getUserPartitionsAndAccountsFilter( Filter ):
         Filter.__init__( self, d_option, elem )
 
     def filter_options( self, options, trans, other_values ):
-        rval = [[ "'account' : 'DEFAULT' , 'partition' : 'DEFAULT'", "'account' : 'DEFAULT' , 'partition' : 'DEFAULT'", False]]
+        rval = [[ "account: DEFAULT | partition: DEFAULT", "'account':'DEFAULT','partition':'DEFAULT'", False]]
         nondefault = False
         data, selaccnt, selpart = getSlurmAccountPartitionCombos(trans.sa_session, trans.user.id)
         for row in data:
-            val = "'account' : '%s' , 'partition' : '%s'"%(row[0], row[1])
+            txt = "account: %s | partition: %s"%(row[0], row[1])
+            val = "'account':'%s','partition':'%s'"%(row[0], row[1])
             state = selaccnt == row[2] and selpart == row[3]
             if state:
                 nondefault = True
-            rval.append([val, val, state ])
+            rval.append([txt, val, state ])
         if len(rval) == 1 or not nondefault:
             rval[0][-1] = True
         return rval
