@@ -517,10 +517,15 @@ filter_types = dict( data_meta = DataMetaFilter,
                      add_value = AdditionalValueFilter,
                      remove_value = RemoveValueFilter,
                      sort_by = SortByColumnFilter,
-                     slurm_accnt = getUseAccountsFilter,
-                     slurm_partition = getUsePartitionsFilter,
-                     slurm_accntNpart = getUserPartitionsAndAccountsFilter,
                  )
+
+#               slurm_accnt = getUseAccountsFilter,
+#               slurm_partition = getUsePartitionsFilter,
+#               slurm_accntNpart = getUserPartitionsAndAccountsFilter,
+
+filter_types['slurm_accnt'] = getUseAccountsFilter
+filter_types['slurm_partition'] = getUsePartitionsFilter
+filter_types['slurm_accntNpart'] = getUserPartitionsAndAccountsFilter
 
 
 class DynamicOptions( object ):
