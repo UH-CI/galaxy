@@ -131,4 +131,7 @@
   </section>
   <section id="samtools" name="NGS: SAM Tools">
   </section>
+  <section id="slurm" name= "Slurm options">
+    <tool file="third_party/slurm/slurm.xml" id = "slurm_Account" text = "Slurm Account" /> 
+  </section>
 </toolbox>
