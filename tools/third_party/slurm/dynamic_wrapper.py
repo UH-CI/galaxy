@@ -23,8 +23,8 @@ def slurm_dynamic_wrapper(app, user):
     params = dict(submit_native_specification = native_specs, 
                   default_file_action = "none", 
                   submit_user = user.username, 
-                  file_action_config = "/lus/scratch/galaxy/config/galaxy/file_action.yml", 
-                  private_token="", 
-                  url = "")
+                  file_action_config = "", 
+                  private_token="",
+                  url = "http://localhost:8913/")
 
     return JobDestination(runner="pulsar", params=params)
