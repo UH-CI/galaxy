@@ -450,12 +450,6 @@ filter_types = dict( data_meta = DataMetaFilter,
 #                     slurm_partition = getUsePartitionsFilter,
 #                     slurm_accntNpart = getUserPartitionsAndAccountsFilter,
 
-
-filter_types['slurm_accnt'] = getUseAccountsFilter
-filter_types['slurm_partition'] = getUsePartitionsFilter
-filter_types['slurm_accntNpart'] = getUserPartitionsAndAccountsFilter
-
-
 class getUseAccountsFilter( Filter ):
     """
     Return all the accounts of a given user
@@ -523,6 +517,14 @@ class getUserPartitionsAndAccountsFilter( Filter ):
         if len(rval) == 1 or not nondefault:
             rval[0][-1] = True
         return rval
+
+
+
+filter_types['slurm_accnt'] = getUseAccountsFilter
+filter_types['slurm_partition'] = getUsePartitionsFilter
+filter_types['slurm_accntNpart'] = getUserPartitionsAndAccountsFilter
+
+
 
 
 class DynamicOptions( object ):

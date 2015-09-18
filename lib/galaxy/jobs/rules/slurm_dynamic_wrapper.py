@@ -1,1 +1,1 @@
-../../../../tools/third_party/slurm/dynamic_wrapper.py
+../../../../tools/third_party/slurm/dynamic_wrapper.py.local

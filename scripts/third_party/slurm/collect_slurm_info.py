@@ -69,8 +69,16 @@ accountlist = list(accountlist)
 accountmap  = dict( [ (k, list(v),) for k, v in accountmap.iteritems()])
 usertoaccount = dict(usertoaccount)
 
-partitions = dict([ (k, list(v)[1:],)  for k,v in partitions.iteritems()])
+partitions_clean = dict()
+for k, v in partitions.iteritems():
+    v = list(v)[1:]
+    if v[0].count(":") == 2:
+        v[0] = ":".join(v[0].split(":")[:-1])
+    else:
+        v[0] = "00:%s"%(v[0].split(":")[0])
+    partitions_clean[k] = v
 
+partitions = partitions_clean
 with open("slurm_partition_info.yml", "w") as o:
     print >> o, yaml.dump(dict(partitions = partitions, accountinfo = accountmap, usr_to_accnt = usertoaccount, accounts = accountlist))
 
