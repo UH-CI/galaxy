@@ -19,12 +19,15 @@ from string import Template
 from uuid import UUID, uuid4
 
 from galaxy import eggs
-eggs.require("pexpect")
-import pexpect
 eggs.require('SQLAlchemy')
 from sqlalchemy import and_, func, not_, or_, true, join, select
 from sqlalchemy.orm import joinedload, object_session, aliased
 from sqlalchemy.ext import hybrid
+
+try:
+    import pexpect
+except ImportError:
+    pexpect = None
 
 import galaxy.datatypes
 import galaxy.datatypes.registry
@@ -56,6 +59,9 @@ datatypes_registry.load_datatypes()
 # are going to have different limits so it is likely best to not let
 # this be unlimited - filter in Python if over this limit.
 MAX_IN_FILTER_LENGTH = 100
+
+PEXPECT_IMPORT_MESSAGE = ('The Python pexpect package is required to use this '
+                          'feature, please install it')
 
 
 class NoConverterException(Exception):
@@ -273,7 +279,7 @@ class PasswordResetToken( object ):
         else:
             self.token = unique_id()
         self.user = user
-        self.expiration_time = datetime.now() + timedelta(hours=24)
+        self.expiration_time = galaxy.model.orm.now.now() + timedelta(hours=24)
 
 
 class BaseJobMetric( object ):
@@ -322,6 +328,9 @@ class Job( object, HasJobMetrics, Dictifiable ):
                     PAUSED='paused',
                     DELETED='deleted',
                     DELETED_NEW='deleted_new' )
+    terminal_states = [ states.OK,
+                        states.ERROR,
+                        states.DELETED ]
 
     # Please include an accessor (get/set pair) for any new columns/members.
     def __init__( self ):
@@ -1619,13 +1628,11 @@ class Dataset( object ):
     def get_total_size( self ):
         if self.total_size is not None:
             return self.total_size
-        if self.file_size:
-            # for backwards compatibility, set if unset
-            self.set_total_size()
-            db_session = object_session( self )
-            db_session.flush()
-            return self.total_size
-        return 0
+        # for backwards compatibility, set if unset
+        self.set_total_size()
+        db_session = object_session( self )
+        db_session.flush()
+        return self.total_size
 
     def set_total_size( self ):
         if self.file_size is None:
@@ -4244,6 +4251,8 @@ class Sample( object, Dictifiable ):
     def get_untransferred_dataset_size( self, filepath, scp_configs ):
         def print_ticks( d ):
             pass
+        if pexpect is None:
+            return PEXPECT_IMPORT_MESSAGE
         error_msg = 'Error encountered in determining the file size of %s on the external_service.' % filepath
         if not scp_configs['host'] or not scp_configs['user_name'] or not scp_configs['password']:
             return error_msg

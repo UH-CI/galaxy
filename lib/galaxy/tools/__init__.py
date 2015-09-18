@@ -295,15 +295,17 @@ class ToolOutput( ToolOutputBase ):
 
 class ToolOutputCollection( ToolOutputBase ):
     """
-    Represents a HistoryDatasetCollectionAssociation of  output datasets produced by a tool.
+    Represents a HistoryDatasetCollectionAssociation of output datasets produced
+    by a tool.
+
     <outputs>
-      <dataset_collection type="list" label="${tool.name} on ${on_string} fasta">
+      <collection type="list" label="${tool.name} on ${on_string} fasta">
         <discover_datasets pattern="__name__" ext="fasta" visible="True" directory="outputFiles" />
-      </dataset_collection>
-      <dataset_collection type="paired" label="${tool.name} on ${on_string} paired reads">
+      </collection>
+      <collection type="paired" label="${tool.name} on ${on_string} paired reads">
         <data name="forward" format="fastqsanger" />
         <data name="reverse" format="fastqsanger"/>
-      </dataset_collection>
+      </collection>
     <outputs>
     """
 
@@ -337,13 +339,10 @@ class ToolOutputCollection( ToolOutputBase ):
         if self.dynamic_structure:
             return []
 
-        def to_part( ( element_identifier, output ) ):
-            return ToolOutputCollectionPart( self, element_identifier, output )
-
         # This line is probably not right - should verify structured_like
         # or have outputs and all outputs have name.
         if len( self.outputs ) > 1:
-            output_parts = map( to_part, self.outputs )
+            output_parts = [ToolOutputCollectionPart(self, k, v) for k, v in self.outputs.iteritems()]
         else:
             # either must have specified structured_like or something worse
             if self.structure.structured_like:
@@ -531,11 +530,11 @@ class Tool( object, Dictifiable ):
     def tool_shed_repository( self ):
         # If this tool is included in an installed tool shed repository, return it.
         if self.tool_shed:
-            return suc.get_tool_shed_repository_by_shed_name_owner_installed_changeset_revision( self.app,
-                                                                                                 self.tool_shed,
-                                                                                                 self.repository_name,
-                                                                                                 self.repository_owner,
-                                                                                                 self.installed_changeset_revision )
+            return suc.get_installed_repository( self.app,
+                                                 tool_shed=self.tool_shed,
+                                                 name=self.repository_name,
+                                                 owner=self.repository_owner,
+                                                 installed_changeset_revision=self.installed_changeset_revision )
         return None
 
     @property
@@ -2302,6 +2301,10 @@ class Tool( object, Dictifiable ):
 
         # Basic information
         tool_dict = super( Tool, self ).to_dict()
+
+        # If an admin user, expose the path to the actual tool config XML file.
+        if trans.user_is_admin():
+            tool_dict['config_file'] = os.path.abspath(self.config_file)
 
         # Add link details.
         if link_details:
