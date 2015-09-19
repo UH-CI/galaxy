@@ -25,7 +25,7 @@ def account_to_partition(app, slurminfo):
 def update_user_slurm_accounts(app, usrselect):
     for r in app.model.context.execute("""SELECT account_id, user_id FROM galaxy_user_slurm_account;"""):
         if r.user_id not in usrselect or r.account_id not in usrselect[r.user_id]: 
-            app.model.context.execute("""DELETE FROM galaxy_user_slurm_account WHERE account_id = :accntid AND user_id = :usrid;""", dict(accntid = r.account_id, urid = r.user_id) )        
+            app.model.context.execute("""DELETE FROM galaxy_user_slurm_account WHERE account_id = :accntid AND user_id = :usrid;""", dict(accntid = r.account_id, usrid = r.user_id) )        
     for usrid, accnts in usrselect.iteritems():
         for accnt in accnts:
             r = app.model.context.execute("""SELECT id FROM galaxy_user_slurm_account WHERE account_id=:accnt AND user_id = :usrid LIMIT 1;""", dict(accnt = accnt, usrid = usrid) )
@@ -44,7 +44,7 @@ def update_user_slurm_partitions(app):
     for r in app.model.context.execute("""SELECT partition_id, user_id FROM galaxy_user_slurm_partition;"""):
         rr = app.model.context.execute("""SELECT account_id FROM slurm_partition_to_account WHERE partition_id=:partid;""", dict(partid = r.partition_id) )
         if rr.rowcount == 0:
-            app.model.context.execute("""DELETE FROM galaxy_user_slurm_partition WHERE partition_id = :partid AND user_id = :usrid;""", dict(partid = r.partition_id, urid = r.user_id) )
+            app.model.context.execute("""DELETE FROM galaxy_user_slurm_partition WHERE partition_id = :partid AND user_id = :usrid;""", dict(partid = r.partition_id, usrid = r.user_id) )
         else:
             # if the partition exists, with some account(s). We need to verify that the user is in one of those accounts.
             rr = app.model.context.execute("""SELECT user_id FROM galaxy_user_slurm_account WHERE user_id = :usrid AND account_id IN :accntid LIMIT 1;""", dict(usrid = r.user_id, accntid = tuple([i[0] for i in rr.fetchall()])) )

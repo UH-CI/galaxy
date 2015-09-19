@@ -26,7 +26,7 @@ nodes = dict([ ( "-".join(i['nodename'].split("[")[0].split("-")[:-1]), (i['proc
 #   'state': 'UNKNOWN',
 #   'threadspercore': '1'},
 
-partitions = dict([ (i['partitionname'] , ( set(i.get('allowaccounts', "ALL",).split(",") ), i['maxtime'], list(nodes["-".join(i['nodes'].split("[")[0].split("-")[:-1])]), i['maxmempercpu'], ), )  for i in lines if "partitionname" in i and 'state' in i and i['state'] == 'UP'])
+partitions = dict([ (i['partitionname'] , ( set(i.get('allowaccounts', "ALL",).split(",") ), i['maxtime'], list(nodes["-".join(i['nodes'].split("[")[0].split("-")[:-1])]), i.get('maxmempercpu', "10000000"), ), )  for i in lines if "partitionname" in i and 'state' in i and i['state'] == 'UP'])
 
  # {'allowaccounts': 'longrun',
  #  'default': 'NO',

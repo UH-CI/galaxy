@@ -22,14 +22,15 @@ def __main__():
     partition, userid= sys.argv[1:]    
     app = MiniApplication(config_file=ini_path)
     trans = app.model.context.begin()
+    o = open(sys.argv[3], "w")
     try:
-        print "Attempting to set slurm submission partition to '%s'"%(partition)
+        print >> o,  "Attempting to set slurm submission partition to '%s'"%(partition)
         setSlurmPartition(app.model.context, userid, partition)
-        print "Slurm submission partition has been set to '%s'"%(partition)
+        print >> o ,"Slurm submission partition has been set to '%s'"%(partition)
         trans.commit()
     except:
         trans.rollback()
-        print >> sys.stderr, "An error occurred while trying to set the slurm submission partition"
+        print >> o, "An error occurred while trying to set the slurm submission partition"
     app.object_store.shutdown()
     app.model.context.close()
 

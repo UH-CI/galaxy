@@ -8,8 +8,8 @@ from third_party.slurm.database.util import *
 
 
 def __main__():
-    if len(sys.argv) != 3:
-        print >> sys.stderr, "USAGE: %s <account> <user id number>" %(sys.argv[0])
+    if len(sys.argv) != 4:
+        print >> sys.stderr, "USAGE: %s <account> <user id number> <outfile>" %(sys.argv[0])
         return
     ini_path = None
     for guess in DEFAULT_INIS:
@@ -21,16 +21,19 @@ def __main__():
     account, userid= sys.argv[1:]    
     app = MiniApplication(config_file=ini_path)
     trans = app.model.context.begin()
+    o = open(sys.argv[3]), "w")
     try:
-        print "Attempting to set slurm submission account to '%s'"%(account)
+        print >> o, "Attempting to set slurm submission account to '%s'"%(account)
         setSlurmAccount(app.model.context, userid, account)
-        print "Slurm submission account has been set to '%s'"%(account)
+        print >> o, "Slurm submission account has been set to '%s'"%(account)
         trans.commit()
     except:
         trans.rollback()
-        print >> sys.stderr, "An error occurred while trying to set the slurm submission account"
+        print >> o, "An error occurred while trying to set the slurm submission account"
     app.object_store.shutdown()
     app.model.context.close()
+    o.close()
+
 
 if __name__ == '__main__':
     __main__()
