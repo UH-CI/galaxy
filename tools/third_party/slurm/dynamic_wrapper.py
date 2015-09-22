@@ -25,9 +25,9 @@ def slurm_dynamic_wrapper(app, user, tool_id):
 	if not tool_thrds:
 	    tool_thrds = {}
         if tool_id in tool_thrds:
-            thrds = tool_thrds.get(tool_id, 0)
+            thrds = int(tool_thrds.get(tool_id, 0))
             if thrds != 0:
-                max_cpus = thrds
+                max_cpus = min(thrds, max_cpus)
                 native_specs = """-p community.q -N 1 -n %s --mem=%s -t 72:00"""%(max_cpus, 102500 / max_cpus)
     
         else:
