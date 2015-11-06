@@ -117,7 +117,7 @@ class JobController( BaseAPIController, UsesLibraryMixinItems ):
     def show( self, trans, id, **kwd ):
         """
         show( trans, id )
-        * GET /api/jobs/{job_id}:
+        * GET /api/jobs/{id}:
             return jobs for current user
 
         :type   id: string
@@ -158,7 +158,7 @@ class JobController( BaseAPIController, UsesLibraryMixinItems ):
     def inputs( self, trans, id, **kwd ):
         """
         show( trans, id )
-        * GET /api/jobs/{job_id}/inputs
+        * GET /api/jobs/{id}/inputs
             returns input datasets created by job
 
         :type   id: string
@@ -174,7 +174,7 @@ class JobController( BaseAPIController, UsesLibraryMixinItems ):
     def outputs( self, trans, id, **kwd ):
         """
         show( trans, id )
-        * GET /api/jobs/{job_id}/outputs
+        * GET /api/jobs/{id}/outputs
             returns output datasets created by job
 
         :type   id: string
@@ -189,7 +189,7 @@ class JobController( BaseAPIController, UsesLibraryMixinItems ):
     @expose_api_anonymous
     def build_for_rerun( self, trans, id, **kwd ):
         """
-        * GET /api/jobs/{job_id}/build_for_rerun
+        * GET /api/jobs/{id}/build_for_rerun
             returns a tool input/param template prepopulated with this job's
             information, suitable for rerunning or rendering parameters of the
             job.
@@ -204,10 +204,10 @@ class JobController( BaseAPIController, UsesLibraryMixinItems ):
         job = self.__get_job(trans, id)
         if not job:
             raise exceptions.ObjectNotFound("Could not access job with id '%s'" % id)
-        tool_id = job.tool_id
-        tool_version = job.tool_version
-        tool = self.app.toolbox.get_tool( tool_id, tool_version )
-        return tool.to_json(trans, kwd={'__job_id__' : id})
+        tool = self.app.toolbox.get_tool( job.tool_id, job.tool_version )
+        if not tool.is_workflow_compatible:
+            raise exceptions.ConfigDoesNotAllowException( "Tool '%s' cannot be rerun." % ( job.tool_id ) )
+        return tool.to_json(trans, {}, job=job)
 
     def __dictify_associations( self, trans, *association_lists ):
         rval = []

@@ -451,7 +451,7 @@ class Tool( object, Dictifiable ):
     requires_setting_metadata = True
     default_tool_action = DefaultToolAction
     dict_collection_visible_keys = ( 'id', 'name', 'version', 'description' )
-    default_template = 'tool_form.mako'
+    default_template = ''
 
     def __init__( self, config_file, tool_source, app, guid=None, repository_id=None, allow_code_files=True ):
         """Load a tool from the config named by `config_file`"""
@@ -1538,6 +1538,8 @@ class Tool( object, Dictifiable ):
                         group_errors[-1] = { '__index__': 'Cannot add repeat (max size=%i).' % input.max }
                         any_group_errors = True
                     rep_index += 1
+                if any_group_errors:
+                    errors[ input.name ] = group_errors
             elif isinstance( input, Conditional ):
                 group_state = state[input.name]
                 group_prefix = "%s|" % ( key )
@@ -2328,15 +2330,11 @@ class Tool( object, Dictifiable ):
 
         return tool_dict
 
-    def to_json(self, trans, kwd={}, is_workflow=False):
+    def to_json(self, trans, kwd={}, job=None, is_workflow=False):
         """
         Recursively creates a tool dictionary containing repeats, dynamic options and updated states.
         """
-        job_id = kwd.get('__job_id__', None)
-        dataset_id = kwd.get('__dataset_id__', None)
         history_id = kwd.get('history_id', None)
-
-        # history id
         history = None
         try:
             if history_id is not None:
@@ -2350,34 +2348,6 @@ class Tool( object, Dictifiable ):
             error = '[history_id=%s] Failed to retrieve history. %s.' % (history_id, str(e))
             log.exception('tools::to_json - %s.' % error)
             return { 'error': error }
-
-        # load job details if provided
-        job = None
-        if job_id:
-            try:
-                job_id = trans.security.decode_id( job_id )
-                job = trans.sa_session.query( trans.app.model.Job ).get( job_id )
-            except Exception, exception:
-                trans.response.status = 500
-                log.error('Failed to retrieve job.')
-                return { 'error': 'Failed to retrieve job.' }
-        elif dataset_id:
-            try:
-                dataset_id = trans.security.decode_id( dataset_id )
-                data = trans.sa_session.query( trans.app.model.HistoryDatasetAssociation ).get( dataset_id )
-                if not ( trans.user_is_admin() or trans.app.security_agent.can_access_dataset( trans.get_current_user_roles(), data.dataset ) ):
-                    trans.response.status = 500
-                    log.error('User has no access to dataset.')
-                    return { 'error': 'User has no access to dataset.' }
-                job = data.creating_job
-                if not job:
-                    trans.response.status = 500
-                    log.error('Creating job not found.')
-                    return { 'error': 'Creating job not found.' }
-            except Exception, exception:
-                trans.response.status = 500
-                log.error('Failed to get job information.')
-                return { 'error': 'Failed to get job information.' }
 
         # load job parameters into incoming
         tool_message = ''
@@ -2398,6 +2368,9 @@ class Tool( object, Dictifiable ):
 
         # convert value to jsonifiable value
         def jsonify(v):
+            if isinstance(v, UnvalidatedValue):
+                v = v.value
+
             # check if value is numeric
             isnumber = False
             try:
@@ -2668,6 +2641,7 @@ class Tool( object, Dictifiable ):
 
         # add additional properties
         tool_model.update({
+            'id'            : self.id,
             'help'          : tool_help,
             'citations'     : tool_citations,
             'biostar_url'   : trans.app.config.biostar_url,
@@ -2677,7 +2651,9 @@ class Tool( object, Dictifiable ):
             'requirements'  : tool_requirements,
             'errors'        : state_errors,
             'state_inputs'  : state_inputs,
-            'job_remap'     : self._get_job_remap(job)
+            'job_id'        : trans.security.encode_id( job.id ) if job else None,
+            'job_remap'     : self._get_job_remap( job ),
+            'history_id'    : trans.security.encode_id( history.id )
         })
 
         # check for errors
@@ -3004,10 +2980,6 @@ class ExportHistoryTool( Tool ):
 
 class ImportHistoryTool( Tool ):
     tool_type = 'import_history'
-
-
-class GenomeIndexTool( Tool ):
-    tool_type = 'index_genome'
 
 
 class DataManagerTool( OutputParameterJSONTool ):
