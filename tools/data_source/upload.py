@@ -38,6 +38,13 @@ except:
 
 assert sys.version_info[:2] >= ( 2, 4 )
 
+def move_copy(src, dest):
+    try:
+        shutil.move(src, dest)
+    except:
+        os.system("""cp %s %s"""%(src, dest))
+        #shutil.copy(src, dest)
+
 
 def stop_err( msg, ret=1 ):
     sys.stderr.write( msg )
@@ -168,8 +175,12 @@ def add_file( dataset, registry, json_file, output_path ):
                     if dataset.type in ( 'server_dir', 'path_paste' ) or not in_place:
                         dataset.path = uncompressed
                     else:
-                        shutil.move( uncompressed, dataset.path )
-                    os.chmod(dataset.path, 0644)
+                        move_copy(uncompressed, dataset.path)
+                        #shutil.move( uncompressed, dataset.path )
+                    try:
+                        os.chmod(dataset.path, 0644)
+                    except:
+                        pass
                 dataset.name = dataset.name.rstrip( '.gz' )
                 data_type = 'gzip'
             if not data_type and bz2 is not None:
@@ -201,8 +212,12 @@ def add_file( dataset, registry, json_file, output_path ):
                         if dataset.type in ( 'server_dir', 'path_paste' ) or not in_place:
                             dataset.path = uncompressed
                         else:
-                            shutil.move( uncompressed, dataset.path )
-                        os.chmod(dataset.path, 0644)
+                            move_copy(uncompressed, dataset.path)
+                            #shutil.move( uncompressed, dataset.path )
+                        try:
+                            os.chmod(dataset.path, 0644)
+                        except:
+                            pass
                     dataset.name = dataset.name.rstrip( '.bz2' )
                     data_type = 'bz2'
             if not data_type:
@@ -258,8 +273,12 @@ def add_file( dataset, registry, json_file, output_path ):
                             if dataset.type in ( 'server_dir', 'path_paste' ) or not in_place:
                                 dataset.path = uncompressed
                             else:
-                                shutil.move( uncompressed, dataset.path )
-                            os.chmod(dataset.path, 0644)
+                                move_copy(uncompressed, dataset.path)
+                                #shutil.move( uncompressed, dataset.path )
+                            try:
+                                os.chmod(dataset.path, 0644)
+                            except:
+                                pass
                             dataset.name = uncompressed_name
                     data_type = 'zip'
             if not data_type:
@@ -330,7 +349,8 @@ def add_file( dataset, registry, json_file, output_path ):
             # This should not happen, but it's here just in case
             shutil.copy( dataset.path, output_path )
     elif link_data_only == 'copy_files':
-        shutil.move( dataset.path, output_path )
+        move_copy(dataset.path, output_path )
+        #shutil.move( dataset.path, output_path )
     # Write the job info
     stdout = stdout or 'uploaded %s file' % data_type
     info = dict( type='dataset',
@@ -374,9 +394,11 @@ def add_composite_file( dataset, registry, json_file, output_path, files_path ):
                             sniff.convert_newlines_sep2tabs( dp, tmp_dir=tmpdir, tmp_prefix=tmp_prefix )
                         else:
                             sniff.convert_newlines( dp, tmp_dir=tmpdir, tmp_prefix=tmp_prefix )
-                    shutil.move( dp, os.path.join( files_path, name ) )
+                    move_copy(dp, os.path.join( files_path, name ) )
+                    #shutil.move( dp, os.path.join( files_path, name ) )
         # Move the dataset to its "real" path
-        shutil.move( dataset.primary_file, output_path )
+        move_copy(dataset.primary_file, output_path )
+        #shutil.move( dataset.primary_file, output_path )
         # Write the job info
         info = dict( type='dataset',
                      dataset_id=dataset.dataset_id,

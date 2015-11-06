@@ -16,7 +16,18 @@ ASSUMPTIONS:
 
 lines  = [ dict([ (i.split("=")[0].lower(), i.split("=")[1], ) for i in l.strip().split()]) for l in open("/etc/sysconfig/slurm/slurm.conf") if l.startswith("PartitionName") or l.startswith("NodeName")]
 
-nodes = dict([ ( "-".join(i['nodename'].split("[")[0].split("-")[:-1]), (i['procs'], i['realmemory'],) , )  for i in lines if "nodename" in i and 'realmemory' in i and 'procs' in i ])
+#-nodes = dict([ ( "-".join(i['nodename'].split("[")[0].split("-")[:-1]), (i['procs'], i['realmemory'],) , )  for i in lines if "nodename" in i and 'realmemory' in i and 'procs' in i ])
+
+nodes = defaultdict(tuple)
+for i in lines:
+    if "nodename" in i and 'realmemory' in i and 'procs' in i :    
+        name =  "-".join(i['nodename'].split("[")[0].split("-")[:-1])
+        info = (i['procs'], i['realmemory'],)
+        if name in nodes:
+            if int(nodes[name][0]) > int(info[0]) or float(nodes[name][1]) > float(info[1]):
+                nodes[name] = info
+        else:
+            nodes[name] = info
 
 # {'corespersocket': '10',
 #   'nodename': 'prod2-[0001-0176]',
