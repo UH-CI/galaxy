@@ -252,6 +252,8 @@ class Configuration( object ):
         self.log_actions = string_as_bool( kwargs.get( 'log_actions', 'False' ) )
         self.log_events = string_as_bool( kwargs.get( 'log_events', 'False' ) )
         self.sanitize_all_html = string_as_bool( kwargs.get( 'sanitize_all_html', True ) )
+        self.sanitize_whitelist_file = resolve_path( kwargs.get( 'sanitize_whitelist_file', "config/sanitize_whitelist.txt" ), self.root )
+        self.reload_sanitize_whitelist()
         self.serve_xss_vulnerable_mimetypes = string_as_bool( kwargs.get( 'serve_xss_vulnerable_mimetypes', False ) )
         self.trust_ipython_notebook_conversion = string_as_bool( kwargs.get( 'trust_ipython_notebook_conversion', False ) )
         self.enable_old_display_applications = string_as_bool( kwargs.get( "enable_old_display_applications", "True" ) )
@@ -385,9 +387,6 @@ class Configuration( object ):
         # Store per-tool runner configs
         self.tool_handlers = self.__read_tool_job_config( global_conf_parser, 'galaxy:tool_handlers', 'name' )
         self.tool_runners = self.__read_tool_job_config( global_conf_parser, 'galaxy:tool_runners', 'url' )
-        # Cloud configuration options
-        self.enable_cloud_launch = string_as_bool( kwargs.get( 'enable_cloud_launch', False ) )
-        self.cloudlaunch_default_ami = kwargs.get( 'cloudlaunch_default_ami', 'ami-a7dbf6ce' )
         # Galaxy messaging (AMQP) configuration options
         self.amqp = {}
         try:
@@ -425,11 +424,14 @@ class Configuration( object ):
         self.new_lib_browse = string_as_bool( kwargs.get( 'new_lib_browse', False ) )
         # Error logging with sentry
         self.sentry_dsn = kwargs.get( 'sentry_dsn', None )
+        # Statistics and profiling with statsd
+        self.statsd_host = kwargs.get( 'statsd_host', '')
+        self.statsd_port = int( kwargs.get( 'statsd_port', 8125 ) )
         # Logging with fluentd
         self.fluent_log = string_as_bool( kwargs.get( 'fluent_log', False ) )
         self.fluent_host = kwargs.get( 'fluent_host', 'localhost' )
         self.fluent_port = int( kwargs.get( 'fluent_port', 24224 ) )
-        # directory where the visualization/registry searches for plugins
+        # directory where the visualization registry searches for plugins
         self.visualization_plugins_directory = kwargs.get(
             'visualization_plugins_directory', 'config/plugins/visualizations' )
         ie_dirs = kwargs.get( 'interactive_environment_plugins_directory', None )
@@ -444,6 +446,7 @@ class Configuration( object ):
         self.dynamic_proxy_bind_port = int( kwargs.get( "dynamic_proxy_bind_port", "8800" ) )
         self.dynamic_proxy_bind_ip = kwargs.get( "dynamic_proxy_bind_ip", "0.0.0.0" )
         self.dynamic_proxy_external_proxy = string_as_bool( kwargs.get( "dynamic_proxy_external_proxy", "False" ) )
+        self.dynamic_proxy_prefix = kwargs.get( "dynamic_proxy_prefix", "gie_proxy" )
 
         # Default chunk size for chunkable datatypes -- 64k
         self.display_chunk_size = int( kwargs.get( 'display_chunk_size', 65536) )
@@ -462,6 +465,16 @@ class Configuration( object ):
             return re.sub( r"^([^:/?#]+:)?//(\w+):(\w+)", r"\1//\2", self.sentry_dsn )
         else:
             return None
+
+    def reload_sanitize_whitelist( self ):
+        self.sanitize_whitelist = []
+        try:
+            with open(self.sanitize_whitelist_file, 'rt') as f:
+                for line in f.readlines():
+                    if not line.startswith("#"):
+                        self.sanitize_whitelist.append(line.strip())
+        except IOError:
+            log.warning("Sanitize log file %s does not exist, continuing with no tools whitelisted.")
 
     def __parse_config_file_options( self, kwargs ):
         """
@@ -688,7 +701,9 @@ def configure_logging( config ):
     # PasteScript will have already configured the logger if the
     # 'loggers' section was found in the config file, otherwise we do
     # some simple setup using the 'log_*' values from the config.
-    if not config.global_conf_parser.has_section( "loggers" ):
+    paste_configures_logging = config.global_conf_parser.has_section( "loggers" )
+    auto_configure_logging = not paste_configures_logging and string_as_bool( config.get( "auto_configure_logging", "True" ) )
+    if auto_configure_logging:
         format = config.get( "log_format", "%(name)s %(levelname)s %(asctime)s %(message)s" )
         level = logging._levelNames[ config.get( "log_level", "DEBUG" ) ]
         destination = config.get( "log_destination", "stdout" )

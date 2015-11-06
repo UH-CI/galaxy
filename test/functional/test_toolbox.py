@@ -16,8 +16,9 @@ log = logging.getLogger( __name__ )
 
 toolbox = None
 
-#Do not test Data Managers as part of the standard Tool Test Framework.
+# Do not test Data Managers as part of the standard Tool Test Framework.
 TOOL_TYPES_NO_TEST = ( DataManagerTool, )
+
 
 class ToolTestCase( TwillTestCase ):
     """Abstract test case that runs tests based on a `galaxy.tools.test.ToolTest`"""
@@ -195,8 +196,12 @@ class ToolTestCase( TwillTestCase ):
                 # the job completed so re-hit the API for more information.
                 data_collection_returned = data_collection_list[ name ]
                 data_collection = galaxy_interactor._get( "dataset_collections/%s" % data_collection_returned[ "id" ], data={"instance_type": "history"} ).json()
-                elements = data_collection[ "elements" ]
-                element_dict = dict( map(lambda e: (e["element_identifier"], e["object"]), elements) )
+
+                def get_element( elements, id ):
+                    for element in elements:
+                        if element["element_identifier"] == id:
+                            return element
+                    return False
 
                 expected_collection_type = output_collection_def.collection_type
                 if expected_collection_type:
@@ -206,20 +211,29 @@ class ToolTestCase( TwillTestCase ):
                         message = template % (name, expected_collection_type, collection_type)
                         raise AssertionError(message)
 
-                for element_identifier, ( element_outfile, element_attrib ) in output_collection_def.element_tests.items():
-                    if element_identifier not in element_dict:
-                        template = "Failed to find identifier [%s] for testing, tool generated collection with identifiers [%s]"
-                        message = template % (element_identifier, ",".join(element_dict.keys()))
-                        raise AssertionError(message)
-                    hda = element_dict[ element_identifier ]
+                def verify_elements( element_objects, element_tests ):
+                    for element_identifier, ( element_outfile, element_attrib ) in element_tests.items():
+                        element = get_element( element_objects, element_identifier )
+                        if not element:
+                            template = "Failed to find identifier [%s] for testing, tool generated collection elements [%s]"
+                            message = template % (element_identifier, element_objects)
+                            raise AssertionError(message)
 
-                    galaxy_interactor.verify_output_dataset(
-                        history,
-                        hda_id=hda["id"],
-                        outfile=element_outfile,
-                        attributes=element_attrib,
-                        shed_tool_id=shed_tool_id
-                    )
+                        element_type = element["element_type"]
+                        if element_type != "dataset_collection":
+                            hda = element[ "object" ]
+                            galaxy_interactor.verify_output_dataset(
+                                history,
+                                hda_id=hda["id"],
+                                outfile=element_outfile,
+                                attributes=element_attrib,
+                                shed_tool_id=shed_tool_id
+                            )
+                        if element_type == "dataset_collection":
+                            elements = element[ "object" ][ "elements" ]
+                            verify_elements( elements, element_attrib.get( "elements", {} ) )
+
+                verify_elements( data_collection[ "elements" ], output_collection_def.element_tests )
             except Exception as e:
                 register_exception(e)
 
@@ -258,7 +272,7 @@ def build_tests( app=None, testing_shed_tools=False, master_api_key=None, user_a
     for i, tool_id in enumerate( app.toolbox.tools_by_id ):
         tool = app.toolbox.get_tool( tool_id )
         if isinstance( tool, TOOL_TYPES_NO_TEST ):
-            #We do not test certain types of tools (e.g. Data Manager tools) as part of ToolTestCase 
+            # We do not test certain types of tools (e.g. Data Manager tools) as part of ToolTestCase
             continue
         if tool.tests:
             shed_tool_id = None if not testing_shed_tools else tool.id

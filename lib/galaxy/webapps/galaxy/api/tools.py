@@ -15,6 +15,7 @@ from galaxy.managers.collections_util import dictify_dataset_collection_instance
 
 import galaxy.queue_worker
 
+
 import logging
 log = logging.getLogger( __name__ )
 
@@ -513,8 +514,8 @@ class ToolsController( BaseAPIController, UsesVisualizationMixin ):
                 else:
                     # Need to create subset.
                     data_source = input_dataset.datatype.data_sources[ 'data' ]
-                    converted_dataset = input_dataset.get_converted_dataset( trans, data_source )
-                    deps = input_dataset.get_converted_dataset_deps( trans, data_source )
+                    input_dataset.get_converted_dataset( trans, data_source )
+                    input_dataset.get_converted_dataset_deps( trans, data_source )
 
                     # Create new HDA for input dataset's subset.
                     new_dataset = trans.app.model.HistoryDatasetAssociation( extension=input_dataset.ext,

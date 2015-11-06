@@ -295,15 +295,17 @@ class ToolOutput( ToolOutputBase ):
 
 class ToolOutputCollection( ToolOutputBase ):
     """
-    Represents a HistoryDatasetCollectionAssociation of  output datasets produced by a tool.
+    Represents a HistoryDatasetCollectionAssociation of output datasets produced
+    by a tool.
+
     <outputs>
-      <dataset_collection type="list" label="${tool.name} on ${on_string} fasta">
+      <collection type="list" label="${tool.name} on ${on_string} fasta">
         <discover_datasets pattern="__name__" ext="fasta" visible="True" directory="outputFiles" />
-      </dataset_collection>
-      <dataset_collection type="paired" label="${tool.name} on ${on_string} paired reads">
+      </collection>
+      <collection type="paired" label="${tool.name} on ${on_string} paired reads">
         <data name="forward" format="fastqsanger" />
         <data name="reverse" format="fastqsanger"/>
-      </dataset_collection>
+      </collection>
     <outputs>
     """
 
@@ -337,22 +339,18 @@ class ToolOutputCollection( ToolOutputBase ):
         if self.dynamic_structure:
             return []
 
-        def to_part( ( element_identifier, output ) ):
-            return ToolOutputCollectionPart( self, element_identifier, output )
-
         # This line is probably not right - should verify structured_like
         # or have outputs and all outputs have name.
         if len( self.outputs ) > 1:
-            outputs = self.outputs
+            output_parts = [ToolOutputCollectionPart(self, k, v) for k, v in self.outputs.iteritems()]
         else:
             # either must have specified structured_like or something worse
             if self.structure.structured_like:
                 collection_prototype = inputs[ self.structure.structured_like ].collection
             else:
                 collection_prototype = type_registry.prototype( self.structure.collection_type )
-            # TODO: Handle nested structures.
-            outputs = odict()
-            for element in collection_prototype.elements:
+
+            def prototype_dataset_element_to_output( element, parent_ids=[] ):
                 name = element.element_identifier
                 format = self.default_format
                 if self.inherit_format:
@@ -366,10 +364,29 @@ class ToolOutputCollection( ToolOutputBase ):
                 )
                 if self.inherit_metadata:
                     output.metadata_source = element.dataset_instance
+                return ToolOutputCollectionPart(
+                    self,
+                    element.element_identifier,
+                    output,
+                    parent_ids=parent_ids,
+                )
 
-                outputs[ element.element_identifier ] = output
+            def prototype_collection_to_output( collection_prototype, parent_ids=[] ):
+                output_parts = []
+                for element in collection_prototype.elements:
+                    element_parts = []
+                    if not element.is_collection:
+                        element_parts.append(prototype_dataset_element_to_output( element, parent_ids ))
+                    else:
+                        new_parent_ids = parent_ids[:] + [element.element_identifier]
+                        element_parts.extend(prototype_collection_to_output(element.element_object, new_parent_ids))
+                    output_parts.extend(element_parts)
 
-        return map( to_part, outputs.items() )
+                return output_parts
+
+            output_parts = prototype_collection_to_output( collection_prototype )
+
+        return output_parts
 
     @property
     def dynamic_structure(self):
@@ -402,10 +419,11 @@ class ToolOutputCollectionStructure( object ):
 
 class ToolOutputCollectionPart( object ):
 
-    def __init__( self, output_collection_def, element_identifier, output_def ):
+    def __init__( self, output_collection_def, element_identifier, output_def, parent_ids=[] ):
         self.output_collection_def = output_collection_def
         self.element_identifier = element_identifier
         self.output_def = output_def
+        self.parent_ids = parent_ids
 
     @property
     def effective_output_name( self ):
@@ -433,7 +451,7 @@ class Tool( object, Dictifiable ):
     requires_setting_metadata = True
     default_tool_action = DefaultToolAction
     dict_collection_visible_keys = ( 'id', 'name', 'version', 'description' )
-    default_template = 'tool_form.mako'
+    default_template = ''
 
     def __init__( self, config_file, tool_source, app, guid=None, repository_id=None, allow_code_files=True ):
         """Load a tool from the config named by `config_file`"""
@@ -512,11 +530,11 @@ class Tool( object, Dictifiable ):
     def tool_shed_repository( self ):
         # If this tool is included in an installed tool shed repository, return it.
         if self.tool_shed:
-            return suc.get_tool_shed_repository_by_shed_name_owner_installed_changeset_revision( self.app,
-                                                                                                 self.tool_shed,
-                                                                                                 self.repository_name,
-                                                                                                 self.repository_owner,
-                                                                                                 self.installed_changeset_revision )
+            return suc.get_installed_repository( self.app,
+                                                 tool_shed=self.tool_shed,
+                                                 name=self.repository_name,
+                                                 owner=self.repository_owner,
+                                                 installed_changeset_revision=self.installed_changeset_revision )
         return None
 
     @property
@@ -1060,6 +1078,9 @@ class Tool( object, Dictifiable ):
         # If parameter depends on any other paramters, we must refresh the
         # form when it changes
         for name in param.get_dependencies():
+            # Let it throw exception, but give some hint what the problem might be
+            if name not in context:
+                log.error("Could not find dependency '%s' of parameter '%s' in tool %s" % (name, param.name, self.name) )
             context[ name ].refresh_on_change = True
         return param
 
@@ -1124,9 +1145,9 @@ class Tool( object, Dictifiable ):
                 # Each page has to rendered all-together because of backreferences allowed by rst
                 try:
                     self.__help_by_page = [ Template( rst_to_html( help_header + x + help_footer ),
-                                                    input_encoding='utf-8', output_encoding='utf-8',
-                                                    default_filters=[ 'decode.utf8' ],
-                                                    encoding_errors='replace' )
+                                                      input_encoding='utf-8', output_encoding='utf-8',
+                                                      default_filters=[ 'decode.utf8' ],
+                                                      encoding_errors='replace' )
                                             for x in self.__help_by_page ]
                 except:
                     log.exception( "error in multi-page help for tool %s" % self.name )
@@ -1464,10 +1485,10 @@ class Tool( object, Dictifiable ):
                     continue
                 if trans.user is None and trans.galaxy_session.current_history != data.history:
                     log.error( 'Got a precreated dataset (%s) but it does not belong to anonymous user\'s current session (%s)'
-                        % ( data.id, trans.galaxy_session.id ) )
+                               % ( data.id, trans.galaxy_session.id ) )
                 elif data.history.user != trans.user:
                     log.error( 'Got a precreated dataset (%s) but it does not belong to current user (%s)'
-                        % ( data.id, trans.user.id ) )
+                               % ( data.id, trans.user.id ) )
                 else:
                     data.state = data.states.ERROR
                     data.info = 'Upload of this dataset was interrupted.  Please try uploading again or'
@@ -1475,8 +1496,8 @@ class Tool( object, Dictifiable ):
                     self.sa_session.flush()
         # It's unlikely the user will ever see this.
         return 'message.mako', dict( status='error',
-            message='Your upload was interrupted. If this was uninentional, please retry it.',
-            refresh_frames=[], cont=None )
+                                     message='Your upload was interrupted. If this was uninentional, please retry it.',
+                                     refresh_frames=[], cont=None )
 
     def populate_state( self, trans, inputs, state, incoming, history=None, source="html", prefix="", context=None ):
         errors = dict()
@@ -1502,13 +1523,13 @@ class Tool( object, Dictifiable ):
                         group_state.append( new_state )
                         group_errors.append( {} )
                         rep_errors = self.populate_state( trans,
-                                                    input.inputs,
-                                                    new_state,
-                                                    incoming,
-                                                    history,
-                                                    source,
-                                                    prefix=rep_name + "|",
-                                                    context=context )
+                                                          input.inputs,
+                                                          new_state,
+                                                          incoming,
+                                                          history,
+                                                          source,
+                                                          prefix=rep_name + "|",
+                                                          context=context )
                         if rep_errors:
                             any_group_errors = True
                             group_errors[rep_index].update( rep_errors )
@@ -1517,6 +1538,8 @@ class Tool( object, Dictifiable ):
                         group_errors[-1] = { '__index__': 'Cannot add repeat (max size=%i).' % input.max }
                         any_group_errors = True
                     rep_index += 1
+                if any_group_errors:
+                    errors[ input.name ] = group_errors
             elif isinstance( input, Conditional ):
                 group_state = state[input.name]
                 group_prefix = "%s|" % ( key )
@@ -1598,13 +1621,13 @@ class Tool( object, Dictifiable ):
                     rep_index = rep_state['__index__']
                     rep_prefix = "%s_%d|" % ( key, rep_index )
                     rep_errors = self.populate_state( trans,
-                                                    input.inputs,
-                                                    rep_state,
-                                                    incoming,
-                                                    history,
-                                                    source,
-                                                    prefix=rep_prefix,
-                                                    context=context)
+                                                      input.inputs,
+                                                      rep_state,
+                                                      incoming,
+                                                      history,
+                                                      source,
+                                                      prefix=rep_prefix,
+                                                      context=context)
                     if rep_errors:
                         any_group_errors = True
                         group_errors.append( rep_errors )
@@ -2281,6 +2304,10 @@ class Tool( object, Dictifiable ):
         # Basic information
         tool_dict = super( Tool, self ).to_dict()
 
+        # If an admin user, expose the path to the actual tool config XML file.
+        if trans.user_is_admin():
+            tool_dict['config_file'] = os.path.abspath(self.config_file)
+
         # Add link details.
         if link_details:
             # Add details for creating a hyperlink to the tool.
@@ -2303,15 +2330,11 @@ class Tool( object, Dictifiable ):
 
         return tool_dict
 
-    def to_json(self, trans, kwd={}, is_workflow=False):
+    def to_json(self, trans, kwd={}, job=None, is_workflow=False):
         """
         Recursively creates a tool dictionary containing repeats, dynamic options and updated states.
         """
-        job_id = kwd.get('__job_id__', None)
-        dataset_id = kwd.get('__dataset_id__', None)
         history_id = kwd.get('history_id', None)
-
-        # history id
         history = None
         try:
             if history_id is not None:
@@ -2325,34 +2348,6 @@ class Tool( object, Dictifiable ):
             error = '[history_id=%s] Failed to retrieve history. %s.' % (history_id, str(e))
             log.exception('tools::to_json - %s.' % error)
             return { 'error': error }
-
-        # load job details if provided
-        job = None
-        if job_id:
-            try:
-                job_id = trans.security.decode_id( job_id )
-                job = trans.sa_session.query( trans.app.model.Job ).get( job_id )
-            except Exception, exception:
-                trans.response.status = 500
-                log.error('Failed to retrieve job.')
-                return { 'error': 'Failed to retrieve job.' }
-        elif dataset_id:
-            try:
-                dataset_id = trans.security.decode_id( dataset_id )
-                data = trans.sa_session.query( trans.app.model.HistoryDatasetAssociation ).get( dataset_id )
-                if not ( trans.user_is_admin() or trans.app.security_agent.can_access_dataset( trans.get_current_user_roles(), data.dataset ) ):
-                    trans.response.status = 500
-                    log.error('User has no access to dataset.')
-                    return { 'error': 'User has no access to dataset.' }
-                job = data.creating_job
-                if not job:
-                    trans.response.status = 500
-                    log.error('Creating job not found.')
-                    return { 'error': 'Creating job not found.' }
-            except Exception, exception:
-                trans.response.status = 500
-                log.error('Failed to get job information.')
-                return { 'error': 'Failed to get job information.' }
 
         # load job parameters into incoming
         tool_message = ''
@@ -2373,6 +2368,9 @@ class Tool( object, Dictifiable ):
 
         # convert value to jsonifiable value
         def jsonify(v):
+            if isinstance(v, UnvalidatedValue):
+                v = v.value
+
             # check if value is numeric
             isnumber = False
             try:
@@ -2643,6 +2641,7 @@ class Tool( object, Dictifiable ):
 
         # add additional properties
         tool_model.update({
+            'id'            : self.id,
             'help'          : tool_help,
             'citations'     : tool_citations,
             'biostar_url'   : trans.app.config.biostar_url,
@@ -2652,7 +2651,9 @@ class Tool( object, Dictifiable ):
             'requirements'  : tool_requirements,
             'errors'        : state_errors,
             'state_inputs'  : state_inputs,
-            'job_remap'     : self._get_job_remap(job)
+            'job_id'        : trans.security.encode_id( job.id ) if job else None,
+            'job_remap'     : self._get_job_remap( job ),
+            'history_id'    : trans.security.encode_id( history.id )
         })
 
         # check for errors
@@ -2979,10 +2980,6 @@ class ExportHistoryTool( Tool ):
 
 class ImportHistoryTool( Tool ):
     tool_type = 'import_history'
-
-
-class GenomeIndexTool( Tool ):
-    tool_type = 'index_genome'
 
 
 class DataManagerTool( OutputParameterJSONTool ):

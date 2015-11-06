@@ -114,9 +114,14 @@ define(['utils/utils', 'mvc/ui/ui-portlet', 'mvc/ui/ui-misc',
 
                 // scroll to first input element
                 if (!silent) {
-                    $('html, body').animate({
-                        scrollTop: input_element.$el.offset().top - 20
-                    }, 500);
+                    if (self==top) {
+                        var $panel = this.$el.parents().filter(function() {
+                            return $(this).css('overflow') == 'auto';
+                        }).first();
+                        $panel.animate({ scrollTop : $panel.scrollTop() + input_element.$el.offset().top - 50 }, 500);
+                    } else {
+                        $('html, body').animate({ scrollTop : input_element.$el.offset().top - 20 }, 500);
+                    }
                 }
             }
         },
@@ -201,12 +206,8 @@ define(['utils/utils', 'mvc/ui/ui-portlet', 'mvc/ui/ui-misc',
                 inputs : this.options.inputs
             });
 
-            // switch to classic tool form mako if the form definition is incompatible
-            if (this.incompatible) {
-                this.$el.hide();
-                $('#tool-form-classic').show();
-                return;
-            }
+            // remove tooltips
+            $( '.tooltip' ).remove();
 
             // create portlet
             this.portlet = new Portlet.View({

@@ -3,16 +3,17 @@ import logging
 import os
 import tempfile
 
+from galaxy import eggs
+eggs.require('SQLAlchemy')
+from sqlalchemy import and_
+
 from galaxy import util
 from galaxy.datatypes import checkers
-from galaxy.model.orm import and_
 from galaxy.tools.data_manager.manager import DataManager
 from galaxy.tools.parser.interface import TestCollectionDef
 from galaxy.web import url_for
-
 from tool_shed.repository_types import util as rt_util
 from tool_shed.tools import tool_validator
-
 from tool_shed.util import basic_util
 from tool_shed.util import common_util
 from tool_shed.util import hg_util
@@ -57,7 +58,7 @@ class MetadataGenerator( object ):
                 repository_files_dir = self.repository.repo_files_directory( self.app )
             if metadata_dict is None:
                 # Shed related tool panel configs are only relevant to Galaxy.
-                self.metadata_dict = { 'shed_config_filename' : self.shed_config_dict.get( 'config_filename', None ) }
+                self.metadata_dict = { 'shed_config_filename': self.shed_config_dict.get( 'config_filename', None ) }
             else:
                 self.metadata_dict = metadata_dict
         else:
@@ -970,7 +971,7 @@ class MetadataGenerator( object ):
                 except Exception:
                     error_message = "Ignoring repository dependency definition for tool shed %s, name %s, owner %s, " % \
                         ( toolshed, name, owner )
-                    error_message += "changeset revision %s because the owner is invalid.  " % changeset_revision
+                    error_message += "changeset revision %s because the owner is invalid." % changeset_revision
                     log.debug( error_message )
                     is_valid = False
                     return repository_dependency_tup, is_valid, error_message
@@ -1102,11 +1103,14 @@ class MetadataGenerator( object ):
             repository_dependencies_dict = metadata.get( 'invalid_repository_dependencies', None )
         for repository_dependency_tup in repository_dependency_tups:
             if is_valid:
-                ( tool_shed, name, owner, changeset_revision, prior_installation_required,
-                  only_if_compiling_contained_td) = repository_dependency_tup
+                tool_shed, name, owner, changeset_revision, \
+                    prior_installation_required, \
+                    only_if_compiling_contained_td = repository_dependency_tup
             else:
-                ( tool_shed, name, owner, changeset_revision, prior_installation_required,
-                  only_if_compiling_contained_td, error_message ) = repository_dependency_tup
+                tool_shed, name, owner, changeset_revision, \
+                    prior_installation_required, \
+                    only_if_compiling_contained_td, error_message = \
+                    repository_dependency_tup
             if repository_dependencies_dict:
                 repository_dependencies = repository_dependencies_dict.get( 'repository_dependencies', [] )
                 for repository_dependency_tup in repository_dependency_tups:
