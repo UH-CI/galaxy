@@ -1,5 +1,7 @@
 import sys
 import os
+import logging
+
 
 GALAXY_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 GALAXY_LIB_DIR = os.path.join(GALAXY_ROOT_DIR, "lib")

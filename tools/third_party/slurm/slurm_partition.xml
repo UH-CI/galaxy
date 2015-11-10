@@ -1,6 +1,6 @@
 <tool id="slurm_Partition" name="Setting the Users Slurm Partition">
   <description>Allows the user to specify which account on the cluster they wish to use.</description>
-  <command interpreter="python">slurm_partition.py '$Partition' $__user_id__ $out_file1</command>
+  <command interpreter="python">slurm_partition.py '$Partition' $__user_id__ $out_file1 > /dev/null </command>
   <inputs>
     <param name="Partition" type="select" label="Get">
       <options>
