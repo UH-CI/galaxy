@@ -27,16 +27,15 @@ def slurm_dynamic_wrapper(app, user, tool_id):
         if tool_id in tool_thrds:
             thrds = int(tool_thrds.get(tool_id, 0))
             if thrds != 0:
-                max_cpus = min(thrds, max_cpus)
-                native_specs = """-p community.q -N 1 -n %s --mem=%s -t 72:00"""%(max_cpus, 102500 / max_cpus)
-    
+                max_cpus = min(thrds, 20)
+                native_specs = """-p community.q -N 1 --mincpus=%s --mem-per-cpu=%s -t 72:00"""%(max_cpus, 102500 / max_cpus)
         else:
             tool_thrds[tool_id] = 0
             with open(threadfile, "w") as yml:
                 yaml.dump(tool_thrds, yml)
 
     if partition:
-        native_specs = """-p %(partition)s -N 1 -n %(max_cpus)s --mem=%(max_mem)s -t %(max_time)s"""%dict(partition=partition, max_cpus=max_cpus, max_mem = int(max_cpus) * int(ram_per_cpu), max_time = max_time)
+        native_specs = """-p %(partition)s -N 1 --mincpus=%(max_cpus)s --mem-per-cpu=%(max_mem)s -t %(max_time)s"""%dict(partition=partition, max_cpus = max_cpus, max_mem = int(ram_per_cpu), max_time = max_time)
 
     if account:
         native_specs = """-A %(account)s %(nspec)s"""%dict(account=account, nspec = native_specs)
